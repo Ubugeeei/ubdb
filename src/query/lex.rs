@@ -1,4 +1,4 @@
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Token {
     Get,
     Set,
@@ -18,7 +18,7 @@ pub struct Lexer {
 }
 
 impl Lexer {
-    fn new(input: String) -> Self {
+    pub fn new(input: String) -> Self {
         let mut lexer = Self {
             input,
             position: 0,
@@ -29,7 +29,7 @@ impl Lexer {
         lexer
     }
 
-    fn next_token(&mut self) -> Token {
+    pub fn next(&mut self) -> Token {
         self.skip_whitespace();
         let token = match self.ch {
             '\u{0}' => Token::Eof,
@@ -100,15 +100,15 @@ mod test {
         use super::{Lexer, Token};
         let input = String::from("SET 1; GET; exit; aaa;");
         let mut lexer = Lexer::new(input);
-        assert_eq!(lexer.next_token(), Token::Set);
-        assert_eq!(lexer.next_token(), Token::Integer(1));
-        assert_eq!(lexer.next_token(), Token::SemiColon);
-        assert_eq!(lexer.next_token(), Token::Get);
-        assert_eq!(lexer.next_token(), Token::SemiColon);
-        assert_eq!(lexer.next_token(), Token::Exit);
-        assert_eq!(lexer.next_token(), Token::SemiColon);
-        assert_eq!(lexer.next_token(), Token::Ident(String::from("aaa")));
-        assert_eq!(lexer.next_token(), Token::SemiColon);
-        assert_eq!(lexer.next_token(), Token::Eof);
+        assert_eq!(lexer.next(), Token::Set);
+        assert_eq!(lexer.next(), Token::Integer(1));
+        assert_eq!(lexer.next(), Token::SemiColon);
+        assert_eq!(lexer.next(), Token::Get);
+        assert_eq!(lexer.next(), Token::SemiColon);
+        assert_eq!(lexer.next(), Token::Exit);
+        assert_eq!(lexer.next(), Token::SemiColon);
+        assert_eq!(lexer.next(), Token::Ident(String::from("aaa")));
+        assert_eq!(lexer.next(), Token::SemiColon);
+        assert_eq!(lexer.next(), Token::Eof);
     }
 }
