@@ -1,4 +1,5 @@
 use std::io::Write;
+mod query;
 
 enum Query {
     Set(i32),
