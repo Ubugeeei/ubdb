@@ -42,7 +42,6 @@ impl Parser {
         let mut statements = Vec::new();
         while self.current_token != Token::Eof {
             let stmt = self.parse_statement()?;
-            dbg!(&stmt);
             statements.push(stmt);
             self.next_token();
         }
