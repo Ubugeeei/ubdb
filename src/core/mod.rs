@@ -21,7 +21,9 @@ impl<'a> Executer<'a> {
         }
     }
 
-    pub fn execute(&mut self, query: Vec<QueryStatement>) {
+    /// return value means whether to continue the repl
+    /// if return false, then exits
+    pub fn execute(&mut self, query: Vec<QueryStatement>) -> bool {
         for stmt in query.iter() {
             match stmt {
                 QueryStatement::Get => match self.buffer {
@@ -34,9 +36,10 @@ impl<'a> Executer<'a> {
                 }
                 QueryStatement::Exit => {
                     println!("bye!");
-                    break;
+                    return false;
                 }
             }
         }
+        true
     }
 }

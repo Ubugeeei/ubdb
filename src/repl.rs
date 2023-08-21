@@ -27,7 +27,10 @@ pub fn start() {
         // execution
         match query {
             Ok(query_stmts) => {
-                executer.execute(query_stmts);
+                let is_continue = executer.execute(query_stmts);
+                if !is_continue {
+                    break;
+                }
             }
             Err(err) => {
                 println!("{}", err);
