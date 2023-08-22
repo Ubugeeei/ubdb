@@ -8,14 +8,12 @@ use super::{
 #[derive(Debug, PartialEq)]
 pub enum ParseError {
     UnexpectedToken(Token),
-    NoArgsSetStatement,
 }
 
 impl Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ParseError::UnexpectedToken(token) => write!(f, "unexpected token: {:?}", token),
-            ParseError::NoArgsSetStatement => write!(f, "no args set statement"),
         }
     }
 }
@@ -160,12 +158,14 @@ impl Parser {
 mod test {
     use super::*;
 
+    fn parse(input: String) -> Result<Vec<QueryStatement>, ParseError> {
+        let lexer = Lexer::new(input);
+        Parser::new(lexer).parse()
+    }
+
     #[test]
     fn test_parse_select_single() {
-        let input = String::from("SELECT foo;");
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let statements = parser.parse().unwrap();
+        let statements = parse(String::from("SELECT foo;")).unwrap();
         assert_eq!(statements.len(), 1);
         assert_eq!(
             statements[0],
@@ -178,10 +178,7 @@ mod test {
 
     #[test]
     fn test_parse_select_multi() {
-        let input = String::from("SELECT foo, bar;");
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let statements = parser.parse().unwrap();
+        let statements = parse(String::from("SELECT foo, bar;")).unwrap();
         assert_eq!(statements.len(), 1);
         assert_eq!(
             statements[0],
@@ -195,10 +192,7 @@ mod test {
     #[test]
     fn test_parse_select_all() {
         {
-            let input = String::from("SELECT *;");
-            let lexer = Lexer::new(input);
-            let mut parser = Parser::new(lexer);
-            let statements = parser.parse().unwrap();
+            let statements = parse(String::from("SELECT *;")).unwrap();
             assert_eq!(statements.len(), 1);
             assert_eq!(
                 statements[0],
@@ -209,10 +203,7 @@ mod test {
             );
         }
         {
-            let input = String::from("SELECT *, foo;");
-            let lexer = Lexer::new(input);
-            let mut parser = Parser::new(lexer);
-            let statements = parser.parse().unwrap();
+            let statements = parse(String::from("SELECT *, foo;")).unwrap();
             assert_eq!(statements.len(), 1);
             assert_eq!(
                 statements[0],
@@ -223,10 +214,7 @@ mod test {
             );
         }
         {
-            let input = String::from("SELECT foo, *;");
-            let lexer = Lexer::new(input);
-            let mut parser = Parser::new(lexer);
-            let statements = parser.parse().unwrap();
+            let statements = parse(String::from("SELECT foo, *;")).unwrap();
             assert_eq!(statements.len(), 1);
             assert_eq!(
                 statements[0],
@@ -240,10 +228,7 @@ mod test {
 
     #[test]
     fn test_parse_set_single() {
-        let input = String::from("SET foo = 1;");
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let statements = parser.parse().unwrap();
+        let statements = parse(String::from("SET foo = 1;")).unwrap();
         assert_eq!(statements.len(), 1);
         assert_eq!(
             statements[0],
@@ -253,10 +238,7 @@ mod test {
 
     #[test]
     fn test_parse_set_multi() {
-        let input = String::from("SET foo = 1 , bar = 999;");
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let statements = parser.parse().unwrap();
+        let statements = parse(String::from("SET foo = 1, bar = 999;")).unwrap();
         assert_eq!(statements.len(), 1);
         assert_eq!(
             statements[0],
@@ -264,27 +246,27 @@ mod test {
         );
     }
 
-    // #[test]
-    // fn test_parse_error() {
-    //     // UnexpectedToken
-    //     {
-    //         let input = String::from("SET 1;");
-    //         let lexer = Lexer::new(input);
-    //         let mut parser = Parser::new(lexer);
-    //         let err = parser.parse().unwrap_err();
-    //         assert_eq!(
-    //             err,
-    //             ParseError::UnexpectedToken(Token::Ident("SET".to_string()))
-    //         );
-    //     }
-
-    //     // NoArgsSetStatement
-    //     {
-    //         let input = String::from("SET; GET; exit;");
-    //         let lexer = Lexer::new(input);
-    //         let mut parser = Parser::new(lexer);
-    //         let err = parser.parse().unwrap_err();
-    //         assert_eq!(err, ParseError::NoArgsSetStatement);
-    //     }
-    // }
+    #[test]
+    fn test_parse_error() {
+        {
+            let err = parse(String::from("SELECT;")).unwrap_err();
+            assert_eq!(err, ParseError::UnexpectedToken(Token::SemiColon));
+        }
+        {
+            let err = parse(String::from("SELECT 1;")).unwrap_err();
+            assert_eq!(err, ParseError::UnexpectedToken(Token::Integer(1)));
+        }
+        {
+            let err = parse(String::from("SET a;")).unwrap_err();
+            assert_eq!(err, ParseError::UnexpectedToken(Token::SemiColon));
+        }
+        {
+            let err = parse(String::from("SET 1;")).unwrap_err();
+            assert_eq!(err, ParseError::UnexpectedToken(Token::Integer(1)));
+        }
+        {
+            let err = parse(String::from("SET;")).unwrap_err();
+            assert_eq!(err, ParseError::UnexpectedToken(Token::SemiColon));
+        }
+    }
 }
