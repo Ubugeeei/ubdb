@@ -102,16 +102,36 @@ impl Parser {
     fn parse_set_statement(&mut self) -> Result<QueryStatement, ParseError> {
         self.next_token(); // skip set
 
-        todo!();
+        let key = self.parse_ident()?;
 
-        // let ret = match self.current_token {
-        //     Token::Integer(value) => Ok(QueryStatement::Select(value)),
-        //     _ => Err(ParseError::NoArgsSetStatement),
-        // };
+        if self.current_token != Token::Equal {
+            return Err(ParseError::UnexpectedToken(self.current_token.clone()));
+        }
+        self.next_token(); // skip =
 
-        // self.next_token(); // skip arg
+        let value = self.parse_int()?;
 
-        // ret
+        Ok(QueryStatement::Set(vec![(key, value)]))
+    }
+
+    fn parse_ident(&mut self) -> Result<String, ParseError> {
+        match self.current_token.to_owned() {
+            Token::Ident(name) => {
+                self.next_token(); // skip name
+                Ok(name)
+            }
+            _ => Err(ParseError::UnexpectedToken(self.current_token.clone())),
+        }
+    }
+
+    fn parse_int(&mut self) -> Result<i32, ParseError> {
+        match self.current_token.to_owned() {
+            Token::Integer(value) => {
+                self.next_token(); // skip value
+                Ok(value)
+            }
+            _ => Err(ParseError::UnexpectedToken(self.current_token.clone())),
+        }
     }
 
     fn parse_exit_statement(&mut self) -> Result<QueryStatement, ParseError> {
@@ -207,21 +227,18 @@ mod test {
         }
     }
 
-    // #[test]
-    // fn test_parse_set_single() {
-    //     let input = String::from("SET foo = 1;");
-    //     let lexer = Lexer::new(input);
-    //     let mut parser = Parser::new(lexer);
-    //     let statements = parser.parse().unwrap();
-    //     assert_eq!(statements.len(), 1);
-    //     assert_eq!(
-    //         statements[0],
-    //         QueryStatement::Select {
-    //             is_all: false,
-    //             columns: vec![]
-    //         }
-    //     );
-    // }
+    #[test]
+    fn test_parse_set_single() {
+        let input = String::from("SET foo = 1;");
+        let lexer = Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+        let statements = parser.parse().unwrap();
+        assert_eq!(statements.len(), 1);
+        assert_eq!(
+            statements[0],
+            QueryStatement::Set(vec![("foo".to_string(), 1)])
+        );
+    }
 
     // #[test]
     // fn test_parse_set_multi() {
