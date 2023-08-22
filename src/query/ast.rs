@@ -1,11 +1,15 @@
 #[derive(Debug)]
-pub struct Query {
-    pub body: Vec<QueryStatement>,
-}
+pub struct Query(Vec<QueryStatement>);
 
 #[derive(Debug, PartialEq)]
 pub enum QueryStatement {
-    Set(i32),
-    Get,
+    Select { is_all: bool, columns: Vec<String> },
+    Set(Vec<Assignment>),
     Exit,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Assignment {
+    pub column: String,
+    pub value: String,
 }
