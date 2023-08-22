@@ -1,10 +1,13 @@
 #[derive(PartialEq, Debug, Clone)]
 pub enum Token {
-    Get,
+    Select,
     Set,
     Exit,
     Integer(i32),
     Ident(String),
+    Equal,
+    Asterisk,
+    Comma,
     SemiColon,
     Illegal,
     Eof,
@@ -33,6 +36,9 @@ impl Lexer {
         self.skip_whitespace();
         let token = match self.ch {
             '\u{0}' => Token::Eof,
+            '=' => Token::Equal,
+            '*' => Token::Asterisk,
+            ',' => Token::Comma,
             ';' => Token::SemiColon,
             '0'..='9' => Token::Integer(self.read_number()),
             _ => Self::word_to_token(&self.read_word()),
@@ -43,8 +49,8 @@ impl Lexer {
 
     fn word_to_token(word: &str) -> Token {
         match word {
-            "GET" => Token::Get,
-            "SET" => Token::Set,
+            "SELECT" | "select" => Token::Select,
+            "SET" | "set" => Token::Set,
             "exit" => Token::Exit,
             _ => Token::Ident(word.to_string()),
         }
@@ -52,7 +58,7 @@ impl Lexer {
 
     fn read_word(&mut self) -> String {
         let position = self.position;
-        while self.ch.is_alphabetic() {
+        while self.ch.is_alphabetic() || self.ch == '_' {
             self.read_char();
         }
         self.read_position -= 1;
@@ -90,16 +96,20 @@ mod test {
     #[test]
     fn test_lexer() {
         use super::{Lexer, Token};
-        let input = String::from("SET 1; GET; exit; aaa;");
+        let input = String::from("SET some_key = 1; SELECT some_key; SELECT *; exit;");
         let mut lexer = Lexer::new(input);
         assert_eq!(lexer.next(), Token::Set);
+        assert_eq!(lexer.next(), Token::Ident(String::from("some_key")));
+        assert_eq!(lexer.next(), Token::Equal);
         assert_eq!(lexer.next(), Token::Integer(1));
         assert_eq!(lexer.next(), Token::SemiColon);
-        assert_eq!(lexer.next(), Token::Get);
+        assert_eq!(lexer.next(), Token::Select);
+        assert_eq!(lexer.next(), Token::Ident(String::from("some_key")));
+        assert_eq!(lexer.next(), Token::SemiColon);
+        assert_eq!(lexer.next(), Token::Select);
+        assert_eq!(lexer.next(), Token::Asterisk);
         assert_eq!(lexer.next(), Token::SemiColon);
         assert_eq!(lexer.next(), Token::Exit);
-        assert_eq!(lexer.next(), Token::SemiColon);
-        assert_eq!(lexer.next(), Token::Ident(String::from("aaa")));
         assert_eq!(lexer.next(), Token::SemiColon);
         assert_eq!(lexer.next(), Token::Eof);
     }

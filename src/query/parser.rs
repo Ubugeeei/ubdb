@@ -50,7 +50,7 @@ impl Parser {
 
     fn parse_statement(&mut self) -> Result<QueryStatement, ParseError> {
         match self.current_token {
-            Token::Get => Ok(self.parse_get_statement()?),
+            Token::Select => Ok(self.parse_get_statement()?),
             Token::Set => Ok(self.parse_set_statement()?),
             Token::Exit => Ok(self.parse_exit_statement()?),
             _ => Err(ParseError::UnexpectedToken(self.current_token.clone())),
