@@ -4,8 +4,26 @@ A Toy RDBMS written in Rust.
 
 ## Usage
 
+(inmemory only)
+
 ```bash
-$ cargo run
+$ cargo run -- -i
+
+> SET a = 1;
+
+> SELECT a;
+a: 1
+
+> SET a = 2, b = 3, c = 999;
+
+> SELECT *;
+a: 2
+b: 3
+c: 999
+
+> SELECT a, b;
+a: 2
+b: 3
 ```
 
 # Log
