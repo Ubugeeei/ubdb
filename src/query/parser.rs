@@ -100,18 +100,29 @@ impl Parser {
     }
 
     fn parse_set_statement(&mut self) -> Result<QueryStatement, ParseError> {
+        let mut assignments = Vec::new();
         self.next_token(); // skip set
 
         let key = self.parse_ident()?;
-
         if self.current_token != Token::Equal {
             return Err(ParseError::UnexpectedToken(self.current_token.clone()));
         }
         self.next_token(); // skip =
-
         let value = self.parse_int()?;
+        assignments.push((key, value));
 
-        Ok(QueryStatement::Set(vec![(key, value)]))
+        while self.current_token == Token::Comma {
+            self.next_token(); // skip ,
+            let key = self.parse_ident()?;
+            if self.current_token != Token::Equal {
+                return Err(ParseError::UnexpectedToken(self.current_token.clone()));
+            }
+            self.next_token(); // skip =
+            let value = self.parse_int()?;
+            assignments.push((key, value));
+        }
+
+        Ok(QueryStatement::Set(assignments))
     }
 
     fn parse_ident(&mut self) -> Result<String, ParseError> {
@@ -240,21 +251,18 @@ mod test {
         );
     }
 
-    // #[test]
-    // fn test_parse_set_multi() {
-    //     let input = String::from("SET foo = 1 , bar = 999;");
-    //     let lexer = Lexer::new(input);
-    //     let mut parser = Parser::new(lexer);
-    //     let statements = parser.parse().unwrap();
-    //     assert_eq!(statements.len(), 1);
-    //     assert_eq!(
-    //         statements[0],
-    //         QueryStatement::Select {
-    //             is_all: false,
-    //             columns: vec![]
-    //         }
-    //     );
-    // }
+    #[test]
+    fn test_parse_set_multi() {
+        let input = String::from("SET foo = 1 , bar = 999;");
+        let lexer = Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+        let statements = parser.parse().unwrap();
+        assert_eq!(statements.len(), 1);
+        assert_eq!(
+            statements[0],
+            QueryStatement::Set(vec![("foo".to_string(), 1), ("bar".to_string(), 999)])
+        );
+    }
 
     // #[test]
     // fn test_parse_error() {
