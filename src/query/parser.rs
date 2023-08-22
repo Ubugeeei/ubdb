@@ -80,10 +80,16 @@ impl Parser {
             }
         }
 
-        // while self.current_token == Token::Comma {
-        //     self.next_token(); // skip ,
-        //     columns.push(self.parse_ident()?);
-        // }
+        while self.current_token == Token::Comma {
+            self.next_token(); // skip ,
+            match &self.current_token {
+                Token::Ident(name) => {
+                    columns.push(name.clone());
+                    self.next_token() // skip name
+                }
+                _ => return Err(ParseError::UnexpectedToken(self.current_token.clone())),
+            }
+        }
 
         Ok((is_all, columns))
     }
@@ -134,21 +140,21 @@ mod test {
         );
     }
 
-    // #[test]
-    // fn test_parse_select_multi() {
-    //     let input = String::from("SELECT foo, bar;");
-    //     let lexer = Lexer::new(input);
-    //     let mut parser = Parser::new(lexer);
-    //     let statements = parser.parse().unwrap();
-    //     assert_eq!(statements.len(), 1);
-    //     assert_eq!(
-    //         statements[0],
-    //         QueryStatement::Select {
-    //             is_all: false,
-    //             columns: vec!["foo".to_string(), "bar".to_string()]
-    //         }
-    //     );
-    // }
+    #[test]
+    fn test_parse_select_multi() {
+        let input = String::from("SELECT foo, bar;");
+        let lexer = Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+        let statements = parser.parse().unwrap();
+        assert_eq!(statements.len(), 1);
+        assert_eq!(
+            statements[0],
+            QueryStatement::Select {
+                is_all: false,
+                columns: vec!["foo".to_string(), "bar".to_string()]
+            }
+        );
+    }
 
     // #[test]
     // fn test_parse_select_all() {
