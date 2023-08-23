@@ -4,8 +4,6 @@ A Toy RDBMS written in Rust.
 
 ## Usage
 
-(inmemory only)
-
 ```bash
 $ cargo run -- -i
 

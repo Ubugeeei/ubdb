@@ -58,7 +58,7 @@ impl Parser {
     fn parse_select_statement(&mut self) -> Result<QueryStatement, ParseError> {
         self.next_token(); // skip select
         let (is_all, columns) = self.parse_select_arg()?;
-        Ok(QueryStatement::Select { is_all, columns })
+        Ok(QueryStatement::Select(is_all, columns))
     }
 
     fn parse_select_arg(&mut self) -> Result<(bool, Vec<String>), ParseError> {
@@ -169,10 +169,7 @@ mod test {
         assert_eq!(statements.len(), 1);
         assert_eq!(
             statements[0],
-            QueryStatement::Select {
-                is_all: false,
-                columns: vec!["foo".to_string(),]
-            }
+            QueryStatement::Select(false, vec!["foo".to_string(),])
         );
     }
 
@@ -182,10 +179,7 @@ mod test {
         assert_eq!(statements.len(), 1);
         assert_eq!(
             statements[0],
-            QueryStatement::Select {
-                is_all: false,
-                columns: vec!["foo".to_string(), "bar".to_string()]
-            }
+            QueryStatement::Select(false, vec!["foo".to_string(), "bar".to_string()])
         );
     }
 
@@ -194,23 +188,14 @@ mod test {
         {
             let statements = parse(String::from("SELECT *;")).unwrap();
             assert_eq!(statements.len(), 1);
-            assert_eq!(
-                statements[0],
-                QueryStatement::Select {
-                    is_all: true,
-                    columns: vec![]
-                }
-            );
+            assert_eq!(statements[0], QueryStatement::Select(true, vec![]));
         }
         {
             let statements = parse(String::from("SELECT *, foo;")).unwrap();
             assert_eq!(statements.len(), 1);
             assert_eq!(
                 statements[0],
-                QueryStatement::Select {
-                    is_all: true,
-                    columns: vec!["foo".to_string()]
-                }
+                QueryStatement::Select(true, vec!["foo".to_string()])
             );
         }
         {
@@ -218,10 +203,7 @@ mod test {
             assert_eq!(statements.len(), 1);
             assert_eq!(
                 statements[0],
-                QueryStatement::Select {
-                    is_all: true,
-                    columns: vec!["foo".to_string()]
-                }
+                QueryStatement::Select(true, vec!["foo".to_string()])
             );
         }
     }
