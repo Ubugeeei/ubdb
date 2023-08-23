@@ -29,7 +29,7 @@ impl<'a> Executer<'a> {
     pub fn execute(&mut self, query: Vec<QueryStatement>) -> bool {
         for stmt in query.iter() {
             match stmt {
-                QueryStatement::Select { is_all, columns } => {
+                QueryStatement::Select(is_all, columns) => {
                     if *is_all {
                         for (key, value) in self.buffer.iter() {
                             println!("{}: {}", key, value);
