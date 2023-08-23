@@ -1,25 +1,20 @@
-use std::collections::BTreeMap;
+mod buffer;
 
 use crate::query::ast::QueryStatement;
 
+use self::buffer::BufferPool;
+
 pub struct Executer<'a> {
     storage_path: &'a str,
-    buffer: BTreeMap<String, i32>,
+    buffer: BufferPool,
 }
 
 impl<'a> Executer<'a> {
     pub fn new(storage_path: &'a str) -> Self {
-        // TODO: load
-        // let buffer = match std::fs::read_to_string(storage_path)
-        //     .unwrap_or_else(|_| String::from("0"))
-        //     .parse::<i32>()
-        // {
-        //     Ok(value) => Some(value),
-        //     Err(_) => None,
-        // };
-
+        let raw = std::fs::read(storage_path).unwrap_or(vec![]);
+        let buffer = BufferPool::from_bytes(&raw);
         Self {
-            buffer: BTreeMap::new(),
+            buffer,
             storage_path,
         }
     }
@@ -31,12 +26,12 @@ impl<'a> Executer<'a> {
             match stmt {
                 QueryStatement::Select(is_all, columns) => {
                     if *is_all {
-                        for (key, value) in self.buffer.iter() {
+                        for (key, value) in self.buffer.body.iter() {
                             println!("{}: {}", key, value);
                         }
                     } else {
                         for column in columns.iter() {
-                            match self.buffer.get(column) {
+                            match self.buffer.body.get(column) {
                                 Some(value) => println!("{}: {}", column, value),
                                 None => println!("{}: not found", column),
                             }
@@ -45,18 +40,18 @@ impl<'a> Executer<'a> {
                 }
                 QueryStatement::Set(value) => {
                     for (key, value) in value.iter() {
-                        self.buffer.insert(key.clone(), *value);
+                        self.buffer.body.insert(key.clone(), *value);
                     }
-                    // TODO: sync
-                    // std::fs::write(self.storage_path, value.to_string()).unwrap();
+                    std::fs::write(self.storage_path, self.buffer.as_bytes()).unwrap();
                 }
                 QueryStatement::Exit => {
                     println!("bye!");
                     return false;
                 }
-                _ => todo!(),
             }
         }
         true
     }
 }
+
+
