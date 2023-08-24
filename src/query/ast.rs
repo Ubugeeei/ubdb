@@ -9,5 +9,14 @@ pub enum QueryStatement {
     // (key_name, value)
     Set(Vec<(String, i32)>),
 
+    // (table_name, (column_name, data_type)[])
+    CreateTable(String, Vec<(String, DataType)>),
+
     Exit,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum DataType {
+    Int,
+    VarChar(usize),
 }

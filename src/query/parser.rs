@@ -50,6 +50,7 @@ impl Parser {
         match self.current_token {
             Token::Select => Ok(self.parse_select_statement()?),
             Token::Set => Ok(self.parse_set_statement()?),
+            Token::Create => Ok(self.parse_create_table_statement()?),
             Token::Exit => Ok(self.parse_exit_statement()?),
             _ => Err(ParseError::UnexpectedToken(self.current_token.clone())),
         }
@@ -123,6 +124,62 @@ impl Parser {
         Ok(QueryStatement::Set(assignments))
     }
 
+    fn parse_create_table_statement(&mut self) -> Result<QueryStatement, ParseError> {
+        self.next_token(); // skip create
+        if self.current_token != Token::Table {
+            return Err(ParseError::UnexpectedToken(self.current_token.clone()));
+        }
+        self.next_token(); // skip table
+
+        let table_name = self.parse_ident()?;
+
+        if self.current_token != Token::LParen {
+            return Err(ParseError::UnexpectedToken(self.current_token.clone()));
+        }
+        self.next_token(); // skip (
+
+        let mut columns = Vec::new();
+        loop {
+            let column_name = self.parse_ident()?;
+            let data_type = self.parse_data_type()?;
+            columns.push((column_name, data_type));
+            if self.current_token == Token::Comma {
+                self.next_token(); // skip ,
+            } else {
+                break;
+            }
+        }
+        if self.current_token != Token::RParen {
+            return Err(ParseError::UnexpectedToken(self.current_token.clone()));
+        }
+        self.next_token(); // skip )
+
+        Ok(QueryStatement::CreateTable(table_name, columns))
+    }
+
+    fn parse_data_type(&mut self) -> Result<super::ast::DataType, ParseError> {
+        match self.current_token.to_owned() {
+            Token::Int => {
+                self.next_token(); // skip int
+                Ok(super::ast::DataType::Int)
+            }
+            Token::VarChar => {
+                self.next_token(); // skip varchar
+                if self.current_token != Token::LParen {
+                    return Err(ParseError::UnexpectedToken(self.current_token.clone()));
+                }
+                self.next_token(); // skip (
+                let length = self.parse_int()?;
+                if self.current_token != Token::RParen {
+                    return Err(ParseError::UnexpectedToken(self.current_token.clone()));
+                }
+                self.next_token(); // skip )
+                Ok(super::ast::DataType::VarChar(length as usize))
+            }
+            _ => Err(ParseError::UnexpectedToken(self.current_token.clone())),
+        }
+    }
+
     fn parse_ident(&mut self) -> Result<String, ParseError> {
         match self.current_token.to_owned() {
             Token::Ident(name) => {
@@ -156,6 +213,8 @@ impl Parser {
 
 #[cfg(test)]
 mod test {
+    use crate::query::ast::DataType;
+
     use super::*;
 
     fn parse(input: String) -> Result<Vec<QueryStatement>, ParseError> {
@@ -250,5 +309,24 @@ mod test {
             let err = parse(String::from("SET;")).unwrap_err();
             assert_eq!(err, ParseError::UnexpectedToken(Token::SemiColon));
         }
+    }
+
+    #[test]
+    fn test_parse_create_table() {
+        let statements = parse(String::from(
+            "CREATE TABLE users (id INT, name VARCHAR(255));",
+        ))
+        .unwrap();
+        assert_eq!(statements.len(), 1);
+        assert_eq!(
+            statements[0],
+            QueryStatement::CreateTable(
+                "users".to_string(),
+                vec![
+                    ("id".to_string(), DataType::Int),
+                    ("name".to_string(), DataType::VarChar(255)),
+                ]
+            )
+        );
     }
 }
