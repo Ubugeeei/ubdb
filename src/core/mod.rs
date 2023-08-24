@@ -163,12 +163,18 @@ impl Executer {
     }
 
     fn update(&mut self, table_name: String, set: Vec<(String, Value)>, cond: (String, Value)) {
+        let mut binding = self
+            .storage
+            .load(&table_name)
+            .expect("table should be in storage"); // TODO: error handling
+
         let table = self
             .buffer
             .body
             .iter_mut()
             .find(|table| table.name == table_name)
-            .unwrap();
+            .unwrap_or(&mut binding);
+
         let rows = table.rows.clone();
         let mut new_rows = Vec::new();
         for row in rows {
