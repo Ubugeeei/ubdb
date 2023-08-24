@@ -40,12 +40,12 @@ impl<'a> Executer<'a> {
                         }
                     }
                 }
-                QueryStatement::Set(value) => {
-                    for (key, value) in value.iter() {
-                        self.buffer.body.insert(key.clone(), *value);
-                    }
-                    std::fs::write(self.storage_path, self.buffer.as_bytes()).unwrap();
-                }
+                // QueryStatement::Update(value) => {
+                //     for (key, value) in value.iter() {
+                //         self.buffer.body.insert(key.clone(), *value);
+                //     }
+                //     std::fs::write(self.storage_path, self.buffer.as_bytes()).unwrap();
+                // }
                 QueryStatement::Exit => {
                     println!("bye!");
                     return false;

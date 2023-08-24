@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use super::{
-    ast::QueryStatement,
+    ast::{QueryStatement, Value},
     lex::{Lexer, Token},
 };
 
@@ -49,7 +49,7 @@ impl Parser {
     fn parse_statement(&mut self) -> Result<QueryStatement, ParseError> {
         match self.current_token {
             Token::Select => Ok(self.parse_select_statement()?),
-            Token::Set => Ok(self.parse_set_statement()?),
+            Token::Update => Ok(self.parse_update_statement()?),
             Token::Create => Ok(self.parse_create_table_statement()?),
             Token::Exit => Ok(self.parse_exit_statement()?),
             _ => Err(ParseError::UnexpectedToken(self.current_token.clone())),
@@ -98,8 +98,15 @@ impl Parser {
         Ok((is_all, columns))
     }
 
-    fn parse_set_statement(&mut self) -> Result<QueryStatement, ParseError> {
+    fn parse_update_statement(&mut self) -> Result<QueryStatement, ParseError> {
         let mut assignments = Vec::new();
+        self.next_token(); // skip update
+
+        let table_name = self.parse_ident()?;
+
+        if self.current_token != Token::Set {
+            return Err(ParseError::UnexpectedToken(self.current_token.clone()));
+        }
         self.next_token(); // skip set
 
         let key = self.parse_ident()?;
@@ -107,7 +114,7 @@ impl Parser {
             return Err(ParseError::UnexpectedToken(self.current_token.clone()));
         }
         self.next_token(); // skip =
-        let value = self.parse_int()?;
+        let value = self.parse_value()?;
         assignments.push((key, value));
 
         while self.current_token == Token::Comma {
@@ -117,11 +124,25 @@ impl Parser {
                 return Err(ParseError::UnexpectedToken(self.current_token.clone()));
             }
             self.next_token(); // skip =
-            let value = self.parse_int()?;
+            let value = self.parse_value()?;
             assignments.push((key, value));
         }
 
-        Ok(QueryStatement::Set(assignments))
+        Ok(QueryStatement::Update(table_name, assignments))
+    }
+
+    fn parse_value(&mut self) -> Result<Value, ParseError> {
+        match self.current_token.to_owned() {
+            Token::Integer(value) => {
+                self.next_token(); // skip value
+                Ok(Value::Int(value))
+            }
+            Token::String(value) => {
+                self.next_token(); // skip value
+                Ok(Value::VarChar(value))
+            }
+            _ => Err(ParseError::UnexpectedToken(self.current_token.clone())),
+        }
     }
 
     fn parse_create_table_statement(&mut self) -> Result<QueryStatement, ParseError> {
@@ -269,21 +290,30 @@ mod test {
 
     #[test]
     fn test_parse_set_single() {
-        let statements = parse(String::from("SET foo = 1;")).unwrap();
+        let statements = parse(String::from("UPDATE user SET name = 'mike';")).unwrap();
         assert_eq!(statements.len(), 1);
         assert_eq!(
             statements[0],
-            QueryStatement::Set(vec![("foo".to_string(), 1)])
+            QueryStatement::Update(
+                String::from("user"),
+                vec![("name".to_string(), Value::VarChar("mike".to_string()))]
+            )
         );
     }
 
     #[test]
     fn test_parse_set_multi() {
-        let statements = parse(String::from("SET foo = 1, bar = 999;")).unwrap();
+        let statements = parse(String::from("UPDATE user SET foo = 1, bar = 999;")).unwrap();
         assert_eq!(statements.len(), 1);
         assert_eq!(
             statements[0],
-            QueryStatement::Set(vec![("foo".to_string(), 1), ("bar".to_string(), 999)])
+            QueryStatement::Update(
+                String::from("user"),
+                vec![
+                    ("foo".to_string(), Value::Int(1)),
+                    ("bar".to_string(), Value::Int(999))
+                ]
+            )
         );
     }
 
@@ -296,18 +326,6 @@ mod test {
         {
             let err = parse(String::from("SELECT 1;")).unwrap_err();
             assert_eq!(err, ParseError::UnexpectedToken(Token::Integer(1)));
-        }
-        {
-            let err = parse(String::from("SET a;")).unwrap_err();
-            assert_eq!(err, ParseError::UnexpectedToken(Token::SemiColon));
-        }
-        {
-            let err = parse(String::from("SET 1;")).unwrap_err();
-            assert_eq!(err, ParseError::UnexpectedToken(Token::Integer(1)));
-        }
-        {
-            let err = parse(String::from("SET;")).unwrap_err();
-            assert_eq!(err, ParseError::UnexpectedToken(Token::SemiColon));
         }
     }
 
