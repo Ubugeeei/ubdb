@@ -3,6 +3,7 @@ pub enum Token {
     // keywords
     Select,
     From,
+    Where,
     Update,
     Set,
     Exit,
@@ -69,6 +70,7 @@ impl Lexer {
         match word {
             "SELECT" | "select" => Token::Select,
             "FROM" | "from" => Token::From,
+            "WHERE" | "where" => Token::Where,
             "UPDATE" | "update" => Token::Update,
             "SET" | "set" => Token::Set,
             "CREATE" | "create" => Token::Create,
@@ -131,7 +133,16 @@ mod test {
     #[test]
     fn test_lexer() {
         use super::{Lexer, Token};
-        let input = String::from("UPDATE user SET name = 'mike'; SELECT name FROM user; SELECT * FROM user; exit; CREATE TABLE user (id INT, name VARCHAR);");
+        let input = String::from(
+            r#"
+                UPDATE user
+                    SET name = 'mike'
+                    WHERE id = 1;
+                SELECT name FROM user;
+                SELECT * FROM user;
+                exit;
+                CREATE TABLE user (id INT, name VARCHAR);"#,
+        );
         let mut lexer = Lexer::new(input);
 
         assert_eq!(lexer.next(), Token::Update);
@@ -140,6 +151,10 @@ mod test {
         assert_eq!(lexer.next(), Token::Ident(String::from("name")));
         assert_eq!(lexer.next(), Token::Equal);
         assert_eq!(lexer.next(), Token::String(String::from("mike")));
+        assert_eq!(lexer.next(), Token::Where);
+        assert_eq!(lexer.next(), Token::Ident(String::from("id")));
+        assert_eq!(lexer.next(), Token::Equal);
+        assert_eq!(lexer.next(), Token::Integer(1));
         assert_eq!(lexer.next(), Token::SemiColon);
 
         assert_eq!(lexer.next(), Token::Select);
