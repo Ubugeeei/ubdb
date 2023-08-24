@@ -55,8 +55,8 @@ impl Storage {
             Value::VarChar(value) => match data_type {
                 DataType::VarChar(size) => {
                     let mut b = vec![];
+                    b.extend_from_slice(&(value.len() as u16).to_be_bytes());
                     b.extend_from_slice(value.as_bytes());
-                    b.resize(*size as usize, 0);
                     b
                 }
                 _ => panic!("data type mismatch"),
@@ -103,7 +103,7 @@ mod test {
                 &Value::VarChar(String::from("hello")),
                 &DataType::VarChar(10)
             ),
-            vec![0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x00, 0x00, 0x00, 0x00, 0x00]
+            vec![0, 0x05, 0x68, 0x65, 0x6c, 0x6c, 0x6f]
         );
     }
 
@@ -142,9 +142,11 @@ mod test {
                 0x0a, 0x00, 0x0a, // varchar(10)
                 0x00, 0x02, // records length
                 0x00, 0x00, 0x00, 0x01, // 1
-                0x61, 0x6c, 0x69, 0x63, 0x65, 0x00, 0x00, 0x00, 0x00, 0x00, // alice
+                0x00, 0x05, // alice length
+                0x61, 0x6c, 0x69, 0x63, 0x65, // alice
                 0x00, 0x00, 0x00, 0x02, // 2
-                0x62, 0x6f, 0x62, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // bob
+                0x00, 0x03, // bob length
+                0x62, 0x6f, 0x62, // bob
             ]
         )
     }
