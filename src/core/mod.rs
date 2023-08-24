@@ -1,4 +1,5 @@
 mod buffer;
+mod table;
 
 use crate::query::ast::QueryStatement;
 
