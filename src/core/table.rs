@@ -2,29 +2,31 @@
 pub struct Table {
     pub name: String,
     pub columns: Vec<(String, DataType)>,
-    pub records: Vec<Record>,
+    pub rows: Vec<Record>,
 }
 impl Table {
-    pub fn new(name: String, columns: Vec<(String, DataType)>, records: Vec<Record>) -> Self {
+    pub fn new(name: String, columns: Vec<(String, DataType)>, rows: Vec<Record>) -> Self {
         // TODO: validation
         Self {
             name,
             columns,
-            records,
+            rows,
         }
     }
 
+    #[allow(dead_code)]
     pub fn insert(&mut self, record: Record) {
-        self.records.push(record);
+        self.rows.push(record);
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum DataType {
     Int,
     VarChar(u16),
 }
 impl DataType {
+    #[allow(dead_code)]
     pub fn size(&self) -> usize {
         match self {
             DataType::Int => 4,
@@ -33,9 +35,7 @@ impl DataType {
     }
 }
 
-
-
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Record {
     pub values: Vec<Value>,
 }
@@ -45,7 +45,7 @@ impl Record {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Value {
     Int(i32),
     VarChar(String),
@@ -61,6 +61,4 @@ mod test {
         assert_eq!(DataType::VarChar(10).size(), 10);
         assert_eq!(DataType::VarChar(65535).size(), 65535);
     }
-
-    
 }

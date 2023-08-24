@@ -1,5 +1,3 @@
-use super::table::Table;
-
 mod flush;
 mod load;
 

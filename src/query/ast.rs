@@ -17,13 +17,13 @@ pub enum QueryStatement {
     Exit,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum DataType {
     Int,
     VarChar(u16),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Value {
     Int(i32),
     VarChar(String),

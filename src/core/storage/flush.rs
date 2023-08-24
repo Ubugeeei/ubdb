@@ -29,8 +29,8 @@ impl Storage {
         }
 
         // records
-        b.extend_from_slice(&(table.records.len() as u16).to_be_bytes());
-        for record in table.records.iter() {
+        b.extend_from_slice(&(table.rows.len() as u16).to_be_bytes());
+        for record in table.rows.iter() {
             for (idx, value) in record.values.iter().enumerate() {
                 b.extend_from_slice(&Self::test_value_as_bytes(value, &table.columns[idx].1));
             }
@@ -53,7 +53,7 @@ impl Storage {
         match value {
             Value::Int(value) => value.to_be_bytes().to_vec(),
             Value::VarChar(value) => match data_type {
-                DataType::VarChar(size) => {
+                DataType::VarChar(_) => {
                     let mut b = vec![];
                     b.extend_from_slice(&(value.len() as u16).to_be_bytes());
                     b.extend_from_slice(value.as_bytes());

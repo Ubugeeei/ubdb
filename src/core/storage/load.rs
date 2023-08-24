@@ -21,8 +21,6 @@ impl Storage {
         let name = String::from_utf8(bytes[offset..offset + name_len as usize].to_vec()).unwrap();
         offset += name_len as usize;
 
-        dbg!(&name);
-
         // columns
         let columns_len = u16::from_be_bytes([bytes[offset], bytes[offset + 1]]);
         offset += 2;
