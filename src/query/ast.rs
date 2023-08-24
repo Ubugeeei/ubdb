@@ -18,5 +18,5 @@ pub enum QueryStatement {
 #[derive(Debug, PartialEq)]
 pub enum DataType {
     Int,
-    VarChar(usize),
+    VarChar(u16),
 }

@@ -174,7 +174,7 @@ impl Parser {
                     return Err(ParseError::UnexpectedToken(self.current_token.clone()));
                 }
                 self.next_token(); // skip )
-                Ok(super::ast::DataType::VarChar(length as usize))
+                Ok(super::ast::DataType::VarChar(length as u16))
             }
             _ => Err(ParseError::UnexpectedToken(self.current_token.clone())),
         }
