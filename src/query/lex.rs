@@ -1,14 +1,30 @@
 #[derive(PartialEq, Debug, Clone)]
 pub enum Token {
+    // keywords
     Select,
+    From,
+    Where,
+    Update,
     Set,
     Exit,
+    Create,
+    Table,
+    Int,
+    VarChar,
+
+    // values
     Integer(i32),
     Ident(String),
+    String(String),
+
+    // symbols
     Equal,
     Asterisk,
     Comma,
     SemiColon,
+    LParen,
+    RParen,
+
     Illegal,
     Eof,
 }
@@ -40,7 +56,10 @@ impl Lexer {
             '*' => Token::Asterisk,
             ',' => Token::Comma,
             ';' => Token::SemiColon,
-            '0'..='9' => Token::Integer(self.read_number()),
+            '(' => Token::LParen,
+            ')' => Token::RParen,
+            '0'..='9' => self.read_number(),
+            '\'' => self.read_string(),
             _ => Self::word_to_token(&self.read_word()),
         };
         self.read_char();
@@ -50,7 +69,14 @@ impl Lexer {
     fn word_to_token(word: &str) -> Token {
         match word {
             "SELECT" | "select" => Token::Select,
+            "FROM" | "from" => Token::From,
+            "WHERE" | "where" => Token::Where,
+            "UPDATE" | "update" => Token::Update,
             "SET" | "set" => Token::Set,
+            "CREATE" | "create" => Token::Create,
+            "TABLE" | "table" => Token::Table,
+            "INT" | "int" => Token::Int,
+            "VARCHAR" | "varchar" => Token::VarChar,
             "exit" => Token::Exit,
             _ => Token::Ident(word.to_string()),
         }
@@ -65,13 +91,24 @@ impl Lexer {
         self.input[position..self.position].to_string()
     }
 
-    fn read_number(&mut self) -> i32 {
+    fn read_number(&mut self) -> Token {
         let position = self.position;
         while self.ch.is_ascii_digit() {
             self.read_char();
         }
         self.read_position -= 1;
-        self.input[position..self.position].parse().unwrap()
+        Token::Integer(self.input[position..self.position].parse().unwrap())
+    }
+
+    fn read_string(&mut self) -> Token {
+        let position = self.position + 1;
+        loop {
+            self.read_char();
+            if self.ch == '\'' {
+                break;
+            }
+        }
+        Token::String(self.input[position..self.position].to_string())
     }
 
     fn read_char(&mut self) {
@@ -96,21 +133,57 @@ mod test {
     #[test]
     fn test_lexer() {
         use super::{Lexer, Token};
-        let input = String::from("SET some_key = 1; SELECT some_key; SELECT *; exit;");
+        let input = String::from(
+            r#"
+                UPDATE user
+                    SET name = 'mike'
+                    WHERE id = 1;
+                SELECT name FROM user;
+                SELECT * FROM user;
+                exit;
+                CREATE TABLE user (id INT, name VARCHAR);"#,
+        );
         let mut lexer = Lexer::new(input);
+
+        assert_eq!(lexer.next(), Token::Update);
+        assert_eq!(lexer.next(), Token::Ident(String::from("user")));
         assert_eq!(lexer.next(), Token::Set);
-        assert_eq!(lexer.next(), Token::Ident(String::from("some_key")));
+        assert_eq!(lexer.next(), Token::Ident(String::from("name")));
+        assert_eq!(lexer.next(), Token::Equal);
+        assert_eq!(lexer.next(), Token::String(String::from("mike")));
+        assert_eq!(lexer.next(), Token::Where);
+        assert_eq!(lexer.next(), Token::Ident(String::from("id")));
         assert_eq!(lexer.next(), Token::Equal);
         assert_eq!(lexer.next(), Token::Integer(1));
         assert_eq!(lexer.next(), Token::SemiColon);
+
         assert_eq!(lexer.next(), Token::Select);
-        assert_eq!(lexer.next(), Token::Ident(String::from("some_key")));
+        assert_eq!(lexer.next(), Token::Ident(String::from("name")));
+        assert_eq!(lexer.next(), Token::From);
+        assert_eq!(lexer.next(), Token::Ident(String::from("user")));
         assert_eq!(lexer.next(), Token::SemiColon);
+
         assert_eq!(lexer.next(), Token::Select);
         assert_eq!(lexer.next(), Token::Asterisk);
+        assert_eq!(lexer.next(), Token::From);
+        assert_eq!(lexer.next(), Token::Ident(String::from("user")));
         assert_eq!(lexer.next(), Token::SemiColon);
+
         assert_eq!(lexer.next(), Token::Exit);
         assert_eq!(lexer.next(), Token::SemiColon);
+
+        assert_eq!(lexer.next(), Token::Create);
+        assert_eq!(lexer.next(), Token::Table);
+        assert_eq!(lexer.next(), Token::Ident(String::from("user")));
+        assert_eq!(lexer.next(), Token::LParen);
+        assert_eq!(lexer.next(), Token::Ident(String::from("id")));
+        assert_eq!(lexer.next(), Token::Int);
+        assert_eq!(lexer.next(), Token::Comma);
+        assert_eq!(lexer.next(), Token::Ident(String::from("name")));
+        assert_eq!(lexer.next(), Token::VarChar);
+        assert_eq!(lexer.next(), Token::RParen);
+        assert_eq!(lexer.next(), Token::SemiColon);
+
         assert_eq!(lexer.next(), Token::Eof);
     }
 }

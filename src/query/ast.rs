@@ -3,11 +3,28 @@ pub struct Query(Vec<QueryStatement>);
 
 #[derive(Debug, PartialEq)]
 pub enum QueryStatement {
-    // (is_all, columns)
-    Select(bool, Vec<String>),
+    // TODO: AND, OR, others
+    // (table_name, is_all, columns, where(key_name, value))
+    Select(String, bool, Vec<String>, Option<(String, Value)>),
 
-    // (key_name, value)
-    Set(Vec<(String, i32)>),
+    // TODO: AND, OR, others
+    // (table_name, set(key_name, value)[], where(key_name, value))
+    Update(String, Vec<(String, Value)>, (String, Value)),
+
+    // (table_name, (column_name, data_type)[])
+    CreateTable(String, Vec<(String, DataType)>),
 
     Exit,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum DataType {
+    Int,
+    VarChar(u16),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum Value {
+    Int(i32),
+    VarChar(String),
 }

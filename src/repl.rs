@@ -5,10 +5,10 @@ use crate::{
     query::{lex::Lexer, parser::Parser},
 };
 
-const STORAGE_PATH: &str = "storage.db";
+const STORAGE_PATH: &str = "db";
 
 pub fn start() {
-    let mut executer = Executer::new(STORAGE_PATH);
+    let mut executer = Executer::new(STORAGE_PATH.to_string());
 
     loop {
         // prompt
