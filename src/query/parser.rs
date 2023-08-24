@@ -58,11 +58,13 @@ impl Parser {
 
     fn parse_select_statement(&mut self) -> Result<QueryStatement, ParseError> {
         self.next_token(); // skip select
-        let (is_all, columns) = self.parse_select_arg()?;
-        Ok(QueryStatement::Select(is_all, columns))
+        let (table_name, is_all, columns, cond) = self.parse_select_arg()?;
+        Ok(QueryStatement::Select(table_name, is_all, columns, cond))
     }
 
-    fn parse_select_arg(&mut self) -> Result<(bool, Vec<String>), ParseError> {
+    fn parse_select_arg(
+        &mut self,
+    ) -> Result<(String, bool, Vec<String>, Option<(String, Value)>), ParseError> {
         let mut is_all = false;
         let mut columns = Vec::new();
 
@@ -95,7 +97,28 @@ impl Parser {
             }
         }
 
-        Ok((is_all, columns))
+        if self.current_token != Token::From {
+            return Err(ParseError::UnexpectedToken(self.current_token.clone()));
+        }
+        self.next_token(); // skip from
+
+        let table_name = self.parse_ident()?;
+
+        // where
+        if self.current_token != Token::Where {
+            return Ok((table_name, is_all, columns, None));
+        }
+        self.next_token(); // skip where
+                           // cond
+        let key = self.parse_ident()?;
+        if self.current_token != Token::Equal {
+            return Err(ParseError::UnexpectedToken(self.current_token.clone()));
+        }
+        self.next_token(); // skip =
+        let value = self.parse_value()?;
+        let cond = (key, value);
+
+        Ok((table_name, is_all, columns, Some(cond)))
     }
 
     fn parse_update_statement(&mut self) -> Result<QueryStatement, ParseError> {
@@ -128,7 +151,24 @@ impl Parser {
             assignments.push((key, value));
         }
 
-        Ok(QueryStatement::Update(table_name, assignments))
+        // where
+        if self.current_token != Token::Where {
+            return Err(ParseError::UnexpectedToken(self.current_token.clone()));
+        }
+        self.next_token(); // skip where
+                           // cond
+        let key = self.parse_ident()?;
+        if self.current_token != Token::Equal {
+            return Err(ParseError::UnexpectedToken(self.current_token.clone()));
+        }
+        self.next_token(); // skip =
+        let value = self.parse_value()?;
+
+        Ok(QueryStatement::Update(
+            table_name,
+            assignments,
+            (key, value),
+        ))
     }
 
     fn parse_value(&mut self) -> Result<Value, ParseError> {
@@ -245,65 +285,93 @@ mod test {
 
     #[test]
     fn test_parse_select_single() {
-        let statements = parse(String::from("SELECT foo;")).unwrap();
+        let statements = parse(String::from("SELECT foo FROM user;")).unwrap();
         assert_eq!(statements.len(), 1);
         assert_eq!(
             statements[0],
-            QueryStatement::Select(false, vec!["foo".to_string(),])
+            QueryStatement::Select(String::from("user"), false, vec!["foo".to_string(),], None)
         );
     }
 
     #[test]
     fn test_parse_select_multi() {
-        let statements = parse(String::from("SELECT foo, bar;")).unwrap();
+        let statements = parse(String::from("SELECT foo, bar FROM user;")).unwrap();
         assert_eq!(statements.len(), 1);
         assert_eq!(
             statements[0],
-            QueryStatement::Select(false, vec!["foo".to_string(), "bar".to_string()])
+            QueryStatement::Select(
+                String::from("user"),
+                false,
+                vec!["foo".to_string(), "bar".to_string()],
+                None
+            )
+        );
+    }
+
+    #[test]
+    fn test_parse_select_where() {
+        let statements = parse(String::from("SELECT foo, bar FROM users WHERE id = 1;")).unwrap();
+        assert_eq!(statements.len(), 1);
+        assert_eq!(
+            statements[0],
+            QueryStatement::Select(
+                String::from("users"),
+                false,
+                vec!["foo".to_string(), "bar".to_string()],
+                Some(("id".to_string(), Value::Int(1)))
+            )
         );
     }
 
     #[test]
     fn test_parse_select_all() {
         {
-            let statements = parse(String::from("SELECT *;")).unwrap();
-            assert_eq!(statements.len(), 1);
-            assert_eq!(statements[0], QueryStatement::Select(true, vec![]));
-        }
-        {
-            let statements = parse(String::from("SELECT *, foo;")).unwrap();
+            let statements = parse(String::from("SELECT * FROM user;")).unwrap();
             assert_eq!(statements.len(), 1);
             assert_eq!(
                 statements[0],
-                QueryStatement::Select(true, vec!["foo".to_string()])
+                QueryStatement::Select(String::from("user"), true, vec![], None)
             );
         }
         {
-            let statements = parse(String::from("SELECT foo, *;")).unwrap();
+            let statements = parse(String::from("SELECT *, foo FROM user;")).unwrap();
             assert_eq!(statements.len(), 1);
             assert_eq!(
                 statements[0],
-                QueryStatement::Select(true, vec!["foo".to_string()])
+                QueryStatement::Select(String::from("user"), true, vec!["foo".to_string()], None)
+            );
+        }
+        {
+            let statements = parse(String::from("SELECT foo, * FROM user;")).unwrap();
+            assert_eq!(statements.len(), 1);
+            assert_eq!(
+                statements[0],
+                QueryStatement::Select(String::from("user"), true, vec!["foo".to_string()], None)
             );
         }
     }
 
     #[test]
     fn test_parse_set_single() {
-        let statements = parse(String::from("UPDATE user SET name = 'mike';")).unwrap();
+        let statements =
+            parse(String::from("UPDATE user SET name = 'mike' WHERE id = 1;")).unwrap();
         assert_eq!(statements.len(), 1);
         assert_eq!(
             statements[0],
             QueryStatement::Update(
                 String::from("user"),
-                vec![("name".to_string(), Value::VarChar("mike".to_string()))]
+                vec![("name".to_string(), Value::VarChar("mike".to_string()))],
+                ("id".to_string(), Value::Int(1))
             )
         );
     }
 
     #[test]
     fn test_parse_set_multi() {
-        let statements = parse(String::from("UPDATE user SET foo = 1, bar = 999;")).unwrap();
+        let statements = parse(String::from(
+            "UPDATE user SET foo = 1, bar = 999 WHERE name = 'mike';",
+        ))
+        .unwrap();
         assert_eq!(statements.len(), 1);
         assert_eq!(
             statements[0],
@@ -312,7 +380,8 @@ mod test {
                 vec![
                     ("foo".to_string(), Value::Int(1)),
                     ("bar".to_string(), Value::Int(999))
-                ]
+                ],
+                ("name".to_string(), Value::VarChar("mike".to_string()))
             )
         );
     }

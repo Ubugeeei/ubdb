@@ -26,20 +26,20 @@ impl<'a> Executer<'a> {
     pub fn execute(&mut self, query: Vec<QueryStatement>) -> bool {
         for stmt in query.iter() {
             match stmt {
-                QueryStatement::Select(is_all, columns) => {
-                    if *is_all {
-                        for (key, value) in self.buffer.body.iter() {
-                            println!("{}: {}", key, value);
-                        }
-                    } else {
-                        for column in columns.iter() {
-                            match self.buffer.body.get(column) {
-                                Some(value) => println!("{}: {}", column, value),
-                                None => println!("{}: not found", column),
-                            }
-                        }
-                    }
-                }
+                // QueryStatement::Select(is_all, columns) => {
+                //     if *is_all {
+                //         for (key, value) in self.buffer.body.iter() {
+                //             println!("{}: {}", key, value);
+                //         }
+                //     } else {
+                //         for column in columns.iter() {
+                //             match self.buffer.body.get(column) {
+                //                 Some(value) => println!("{}: {}", column, value),
+                //                 None => println!("{}: not found", column),
+                //             }
+                //         }
+                //     }
+                // }
                 // QueryStatement::Update(value) => {
                 //     for (key, value) in value.iter() {
                 //         self.buffer.body.insert(key.clone(), *value);
