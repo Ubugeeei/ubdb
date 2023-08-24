@@ -2,6 +2,8 @@
 pub enum Token {
     // keywords
     Select,
+    From,
+    Update,
     Set,
     Exit,
     Create,
@@ -64,6 +66,8 @@ impl Lexer {
     fn word_to_token(word: &str) -> Token {
         match word {
             "SELECT" | "select" => Token::Select,
+            "FROM" | "from" => Token::From,
+            "UPDATE" | "update" => Token::Update,
             "SET" | "set" => Token::Set,
             "CREATE" | "create" => Token::Create,
             "TABLE" | "table" => Token::Table,
@@ -114,21 +118,27 @@ mod test {
     #[test]
     fn test_lexer() {
         use super::{Lexer, Token};
-        let input = String::from("SET some_key = 1; SELECT some_key; SELECT *; exit; CREATE TABLE users (id INT, name VARCHAR);");
+        let input = String::from("UPDATE user SET name = 1; SELECT name FROM user; SELECT * FROM user; exit; CREATE TABLE user (id INT, name VARCHAR);");
         let mut lexer = Lexer::new(input);
 
+        assert_eq!(lexer.next(), Token::Update);
+        assert_eq!(lexer.next(), Token::Ident(String::from("user")));
         assert_eq!(lexer.next(), Token::Set);
-        assert_eq!(lexer.next(), Token::Ident(String::from("some_key")));
+        assert_eq!(lexer.next(), Token::Ident(String::from("name")));
         assert_eq!(lexer.next(), Token::Equal);
         assert_eq!(lexer.next(), Token::Integer(1));
         assert_eq!(lexer.next(), Token::SemiColon);
 
         assert_eq!(lexer.next(), Token::Select);
-        assert_eq!(lexer.next(), Token::Ident(String::from("some_key")));
+        assert_eq!(lexer.next(), Token::Ident(String::from("name")));
+        assert_eq!(lexer.next(), Token::From);
+        assert_eq!(lexer.next(), Token::Ident(String::from("user")));
         assert_eq!(lexer.next(), Token::SemiColon);
 
         assert_eq!(lexer.next(), Token::Select);
         assert_eq!(lexer.next(), Token::Asterisk);
+        assert_eq!(lexer.next(), Token::From);
+        assert_eq!(lexer.next(), Token::Ident(String::from("user")));
         assert_eq!(lexer.next(), Token::SemiColon);
 
         assert_eq!(lexer.next(), Token::Exit);
@@ -136,7 +146,7 @@ mod test {
 
         assert_eq!(lexer.next(), Token::Create);
         assert_eq!(lexer.next(), Token::Table);
-        assert_eq!(lexer.next(), Token::Ident(String::from("users")));
+        assert_eq!(lexer.next(), Token::Ident(String::from("user")));
         assert_eq!(lexer.next(), Token::LParen);
         assert_eq!(lexer.next(), Token::Ident(String::from("id")));
         assert_eq!(lexer.next(), Token::Int);
