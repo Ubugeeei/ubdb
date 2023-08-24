@@ -14,6 +14,7 @@ pub enum Token {
     // values
     Integer(i32),
     Ident(String),
+    String(String),
 
     // symbols
     Equal,
@@ -56,7 +57,8 @@ impl Lexer {
             ';' => Token::SemiColon,
             '(' => Token::LParen,
             ')' => Token::RParen,
-            '0'..='9' => Token::Integer(self.read_number()),
+            '0'..='9' => self.read_number(),
+            '\'' => self.read_string(),
             _ => Self::word_to_token(&self.read_word()),
         };
         self.read_char();
@@ -87,13 +89,24 @@ impl Lexer {
         self.input[position..self.position].to_string()
     }
 
-    fn read_number(&mut self) -> i32 {
+    fn read_number(&mut self) -> Token {
         let position = self.position;
         while self.ch.is_ascii_digit() {
             self.read_char();
         }
         self.read_position -= 1;
-        self.input[position..self.position].parse().unwrap()
+        Token::Integer(self.input[position..self.position].parse().unwrap())
+    }
+
+    fn read_string(&mut self) -> Token {
+        let position = self.position + 1;
+        loop {
+            self.read_char();
+            if self.ch == '\'' {
+                break;
+            }
+        }
+        Token::String(self.input[position..self.position].to_string())
     }
 
     fn read_char(&mut self) {
@@ -118,7 +131,7 @@ mod test {
     #[test]
     fn test_lexer() {
         use super::{Lexer, Token};
-        let input = String::from("UPDATE user SET name = 1; SELECT name FROM user; SELECT * FROM user; exit; CREATE TABLE user (id INT, name VARCHAR);");
+        let input = String::from("UPDATE user SET name = 'mike'; SELECT name FROM user; SELECT * FROM user; exit; CREATE TABLE user (id INT, name VARCHAR);");
         let mut lexer = Lexer::new(input);
 
         assert_eq!(lexer.next(), Token::Update);
@@ -126,7 +139,7 @@ mod test {
         assert_eq!(lexer.next(), Token::Set);
         assert_eq!(lexer.next(), Token::Ident(String::from("name")));
         assert_eq!(lexer.next(), Token::Equal);
-        assert_eq!(lexer.next(), Token::Integer(1));
+        assert_eq!(lexer.next(), Token::String(String::from("mike")));
         assert_eq!(lexer.next(), Token::SemiColon);
 
         assert_eq!(lexer.next(), Token::Select);
